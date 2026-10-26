@@ -1,5 +1,12 @@
 import { Prec } from "@codemirror/state";
-import { App, MarkdownPostProcessorContext, Platform, Plugin, PluginSettingTab, Setting } from "obsidian";
+import {
+	App,
+	MarkdownPostProcessorContext,
+	Platform,
+	Plugin,
+	PluginSettingTab,
+	SettingDefinitionItem,
+} from "obsidian";
 import { GoogleAccountModal, SIGN_IN_URL, SIGN_OUT_URL } from "./account";
 import { createEmbed, registerWebviewHost, WebviewElement } from "./embed";
 import { EmbedMode, EmbedSize, GoogleDoc, parseGoogleDocUrl, replaceEmbedSize } from "./googleUrl";
@@ -54,17 +61,20 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		return { height: this.settings.defaultHeight };
 	}
 
-	// `doc` must be the document of the window the webview goes into: Obsidian
+	// Made by `parent`, so the webview belongs to the window it goes into: Obsidian
 	// crashes when a webview made by one window is inserted into another (pop-out
 	// windows, the settings window). Set "src" after this; the partition has to be
 	// in place before the first navigation.
-	createWebview(doc: Document): WebviewElement {
-		const webview = doc.createElement("webview") as WebviewElement;
-		webview.setAttribute("partition", PARTITION);
-		webview.setAttribute("useragent", this.settings.userAgent || chromeUserAgent());
-		// Obsidian denies pop-ups from webviews and opens their links in the browser instead;
-		// without this attribute, links inside a document would do nothing.
-		webview.setAttribute("allowpopups", "");
+	createWebview(parent: HTMLElement): WebviewElement {
+		const webview = parent.createEl("webview", {
+			attr: {
+				partition: PARTITION,
+				useragent: this.settings.userAgent.trim() || chromeUserAgent(),
+				// Obsidian denies pop-ups from webviews and opens their links in the browser instead;
+				// without this attribute, links inside a document would do nothing.
+				allowpopups: true,
+			},
+		});
 		webview.addEventListener("dom-ready", () => webview.addClass("is-ready"));
 		retryFailedLoadOnce(webview);
 		return webview;
@@ -143,7 +153,10 @@ function chromeUserAgent(): string {
 		: Platform.isWin
 			? "Windows NT 10.0; Win64; x64"
 			: "X11; Linux x86_64";
-	const major = process.versions.chrome!.split(".")[0];
+	// User-Agent Client Hints, which TypeScript's DOM types do not cover yet.
+	const { brands } = (navigator as Navigator & { userAgentData: { brands: { brand: string; version: string }[] } })
+		.userAgentData;
+	const major = brands.find((brand) => brand.brand === "Chromium")!.version;
 	return `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
 
@@ -155,66 +168,44 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		const { settings } = this.plugin;
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Google account")
-			.setDesc("Sign in once; every embed uses this session. Open embeds reload when the window closes.")
-			.addButton((button) =>
-				button
-					.setButtonText("Sign in")
-					.setCta()
-					.onClick(() => this.plugin.openAccountModal(SIGN_IN_URL)),
-			)
-			.addButton((button) =>
-				button.setButtonText("Sign out").onClick(() => this.plugin.openAccountModal(SIGN_OUT_URL)),
-			);
-
-		new Setting(containerEl)
-			.setName("Embed mode")
-			.setDesc("How documents open. Applies to embeds rendered after the change.")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOptions({
-						edit: "Editor",
-						minimal: "Editor without menus",
-						preview: "Read-only preview",
-					})
-					.setValue(settings.mode)
-					.onChange(async (value) => {
-						settings.mode = value as EmbedMode;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default height")
-			.setDesc("Height in pixels for links without a size, such as ![[link]] rather than ![[link|600]].")
-			.addSlider((slider) =>
-				slider
-					.setLimits(200, 1600, 50)
-					.setValue(settings.defaultHeight)
-					.setDynamicTooltip()
-					.onChange(async (value) => {
-						settings.defaultHeight = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("User agent")
-			.setDesc("Leave empty to send Chrome's user agent. Change it only if Google refuses the sign-in.")
-			.addText((text) =>
-				text
-					.setPlaceholder(chromeUserAgent())
-					.setValue(settings.userAgent)
-					.onChange(async (value) => {
-						settings.userAgent = value.trim();
-						await this.plugin.saveSettings();
-					}),
-			);
+	// Controls read and write this.plugin.settings[key] and save it themselves.
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Google account",
+				desc: "Sign in once; every embed uses this session. Open embeds reload when the window closes.",
+				render: (setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText("Sign in")
+								.setCta()
+								.onClick(() => this.plugin.openAccountModal(SIGN_IN_URL)),
+						)
+						.addButton((button) =>
+							button.setButtonText("Sign out").onClick(() => this.plugin.openAccountModal(SIGN_OUT_URL)),
+						);
+				},
+			},
+			{
+				name: "Embed mode",
+				desc: "How documents open. Applies to embeds rendered after the change.",
+				control: {
+					type: "dropdown",
+					key: "mode",
+					options: { edit: "Editor", minimal: "Editor without menus", preview: "Read-only preview" },
+				},
+			},
+			{
+				name: "Default height",
+				desc: "Height in pixels for links without a size, such as ![[link]] rather than ![[link|600]].",
+				control: { type: "slider", key: "defaultHeight", min: 200, max: 1600, step: 50 },
+			},
+			{
+				name: "User agent",
+				desc: "Leave empty to send Chrome's user agent. Change it only if Google refuses the sign-in.",
+				control: { type: "text", key: "userAgent", placeholder: chromeUserAgent() },
+			},
+		];
 	}
 }

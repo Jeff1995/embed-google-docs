@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import builtins from "builtin-modules";
+import { builtinModules } from "node:module";
 
 const prod = process.argv[2] === "production";
 
@@ -11,7 +11,7 @@ const context = await esbuild.context({
 		"electron",
 		"@codemirror/*",
 		"@lezer/*",
-		...builtins,
+		...builtinModules,
 	],
 	format: "cjs",
 	target: "es2021",

@@ -6,6 +6,14 @@ export interface WebviewElement extends HTMLElement {
 	reload(): void;
 }
 
+// Lets Obsidian's createEl return these elements with their own types.
+declare global {
+	interface HTMLElementTagNameMap {
+		webview: WebviewElement;
+		"gdocs-webview-host": WebviewHost;
+	}
+}
+
 interface EmbedCallbacks {
 	onResize: (size: EmbedSize) => void;
 	onEditSource?: () => void;
@@ -34,16 +42,14 @@ export function createEmbed(
 	const actions = header.createDiv({ cls: "gdocs-embed-actions" });
 
 	// Created by the main window's document, the one the element is defined in.
-	const host = document.createElement(WEBVIEW_HOST_TAG) as WebviewHost;
-	host.addClass("gdocs-embed-body");
-	host.createWebview = (ownerDocument) => {
-		const webview = plugin.createWebview(ownerDocument);
+	const host = createEl(WEBVIEW_HOST_TAG, { cls: "gdocs-embed-body" });
+	host.createWebview = (parent) => {
+		const webview = plugin.createWebview(parent);
 		webview.addClass("gdocs-embed-view");
 		webview.addEventListener("page-title-updated", (event) => {
 			title.setText((event as Event & { title: string }).title);
 		});
 		webview.setAttribute("src", embedUrl(doc, plugin.settings.mode));
-		return webview;
 	};
 	container.appendChild(host);
 
@@ -66,7 +72,7 @@ const WEBVIEW_HOST_TAG = "gdocs-webview-host";
 // the webview the moment it is detached (custom element callbacks run before the
 // move completes) and builds a new one in whatever window it lands in.
 class WebviewHost extends HTMLElement {
-	createWebview?: (ownerDocument: Document) => WebviewElement;
+	createWebview?: (parent: HTMLElement) => void;
 	private observer?: IntersectionObserver;
 
 	connectedCallback(): void {
@@ -75,7 +81,7 @@ class WebviewHost extends HTMLElement {
 		this.observer = new IntersectionObserver((entries) => {
 			if (!entries.some((entry) => entry.isIntersecting)) return;
 			this.observer!.disconnect();
-			this.appendChild(this.createWebview!(this.ownerDocument));
+			this.createWebview!(this);
 		});
 		this.observer.observe(this);
 	}

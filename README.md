@@ -87,6 +87,10 @@ npm install
 npm run build   # or `npm run dev` to rebuild on every change
 ```
 
+To release, set the new version in `manifest.json` and `package.json`, commit,
+and push a tag with that version (`git tag 0.1.2 && git push origin 0.1.2`).
+GitHub Actions builds the plugin, attests the files and publishes the release.
+
 ## License
 
 [MIT](LICENSE)

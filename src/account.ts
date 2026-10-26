@@ -20,10 +20,9 @@ export class GoogleAccountModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass("gdocs-account-modal");
 		this.titleEl.setText("Google account");
-		const webview = this.plugin.createWebview(this.contentEl.doc);
+		const webview = this.plugin.createWebview(this.contentEl);
 		webview.addClass("gdocs-account-view");
 		webview.setAttribute("src", this.url);
-		this.contentEl.appendChild(webview);
 	}
 
 	onClose(): void {
