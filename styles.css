@@ -1,0 +1,122 @@
+.gdocs-embed {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	max-width: 100%;
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background-color: var(--background-primary);
+}
+
+/* Live preview block widgets must not have vertical margins, so the editor uses padding. */
+.markdown-rendered .gdocs-embed {
+	margin: var(--size-4-2) 0;
+}
+
+.gdocs-embed-block {
+	padding: var(--size-4-2) 0;
+}
+
+.gdocs-embed-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) var(--size-2-1) var(--size-2-1) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	line-height: var(--line-height-tight);
+}
+
+.gdocs-embed-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gdocs-embed-actions {
+	display: flex;
+}
+
+.gdocs-embed-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.gdocs-embed-view {
+	flex: 1;
+}
+
+.gdocs-embed-footer {
+	display: flex;
+	flex: none;
+	height: 10px;
+	border-top: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+}
+
+.gdocs-embed-resize-height {
+	flex: 1;
+	position: relative;
+	cursor: ns-resize;
+}
+
+.gdocs-embed-resize-height::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	left: calc(50% - 16px);
+	width: 32px;
+	height: 3px;
+	border-radius: 2px;
+	background-color: var(--text-faint);
+}
+
+.gdocs-embed-resize-corner {
+	flex: none;
+	width: 14px;
+	cursor: nwse-resize;
+	background: linear-gradient(
+		135deg,
+		transparent 55%,
+		var(--text-faint) 55%,
+		var(--text-faint) 65%,
+		transparent 65%,
+		transparent 75%,
+		var(--text-faint) 75%,
+		var(--text-faint) 85%,
+		transparent 85%
+	);
+}
+
+.gdocs-embed-resize-height:hover::after,
+.gdocs-embed.is-resizing .gdocs-embed-resize-height::after {
+	background-color: var(--interactive-accent);
+}
+
+.gdocs-embed.is-resizing {
+	user-select: none;
+}
+
+.gdocs-embed.is-resizing .gdocs-embed-view {
+	pointer-events: none;
+}
+
+.gdocs-account-modal {
+	width: min(560px, 90vw);
+	height: min(720px, 85vh);
+}
+
+.gdocs-account-modal .modal-content {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.gdocs-account-view {
+	flex: 1;
+}

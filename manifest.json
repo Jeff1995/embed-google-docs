@@ -1,0 +1,9 @@
+{
+	"id": "embed-google-docs",
+	"name": "Embed Google Docs",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.7",
+	"description": "Embed live Google Docs, Sheets and Slides in notes with ![[sharing link]], signed in with your Google account, with drag-to-resize.",
+	"author": "zcao",
+	"isDesktopOnly": true
+}
