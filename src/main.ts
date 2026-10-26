@@ -1,5 +1,5 @@
 import { Prec } from "@codemirror/state";
-import { App, MarkdownPostProcessorContext, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { App, MarkdownPostProcessorContext, Platform, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { GoogleAccountModal, SIGN_IN_URL, SIGN_OUT_URL } from "./account";
 import { createEmbed, registerWebviewHost, WebviewElement } from "./embed";
 import { EmbedMode, EmbedSize, GoogleDoc, parseGoogleDocUrl, replaceEmbedSize } from "./googleUrl";
@@ -26,7 +26,7 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 	settings!: Settings;
 
 	async onload(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<Settings> | null);
 		registerWebviewHost();
 
 		this.registerMarkdownPostProcessor((el, ctx) => this.renderReadingViewEmbeds(el, ctx));
@@ -89,7 +89,7 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 			const size = placeholderSize(placeholder) ?? this.defaultSize();
 			// Swapping the element out keeps Obsidian from filling it with "not found".
 			placeholder.replaceWith(
-				createEmbed(this, doc, size, { onResize: (newSize) => this.saveSizeInFile(el, ctx, doc, newSize) }),
+				createEmbed(this, doc, size, { onResize: (newSize) => void this.saveSizeInFile(el, ctx, doc, newSize) }),
 			);
 		}
 	}
@@ -136,12 +136,15 @@ function placeholderSize(placeholder: HTMLElement): EmbedSize | null {
 	return height ? { width: Number(width), height: Number(height) } : { height: Number(width) };
 }
 
-// Obsidian's user agent minus its "obsidian/x" and "Electron/x" tokens: what Chrome sends.
+// What Chrome sends on this OS, for the Chromium version Obsidian runs on.
 function chromeUserAgent(): string {
-	return navigator.userAgent
-		.split(" ")
-		.filter((token) => !/^(obsidian|electron)\//i.test(token))
-		.join(" ");
+	const os = Platform.isMacOS
+		? "Macintosh; Intel Mac OS X 10_15_7"
+		: Platform.isWin
+			? "Windows NT 10.0; Win64; x64"
+			: "X11; Linux x86_64";
+	const major = process.versions.chrome!.split(".")[0];
+	return `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
 
 class EmbedGoogleDocsSettingTab extends PluginSettingTab {

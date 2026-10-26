@@ -58,13 +58,35 @@ user agent in the settings, for example a current Firefox one.
 - Links clicked inside a document open the way Obsidian opens external links.
 - Embeds inside code blocks are left as text.
 
+## Network use and accounts
+
+- **Google account**: viewing private documents and editing need a Google
+  account. Public documents open without one.
+- **Network**: embeds and the sign-in window load pages from Google
+  (`docs.google.com`, `accounts.google.com` and whatever those pages load).
+  The plugin contacts no other service, collects no data and sends nothing
+  anywhere itself.
+- **Session data**: the Google sign-in cookies are stored by Obsidian's
+  Electron runtime in the `persist:embed-google-docs` session, outside your
+  vault. **Sign out of Google** clears the login.
+
 ## Install
+
+In Obsidian, open Settings → Community plugins → Browse, search for
+**Embed Google Docs**, then install and enable it.
+
+To install by hand, download `main.js`, `manifest.json` and `styles.css` from
+the [latest release](https://github.com/Jeff1995/embed-google-docs/releases/latest)
+into `<vault>/.obsidian/plugins/embed-google-docs/`, then enable
+**Embed Google Docs** under Settings → Community plugins.
+
+## Development
 
 ```sh
 npm install
-npm run build
+npm run build   # or `npm run dev` to rebuild on every change
 ```
 
-Copy `main.js`, `manifest.json` and `styles.css` into
-`<vault>/.obsidian/plugins/embed-google-docs/`, then enable **Embed Google Docs**
-under Settings → Community plugins. `npm run dev` rebuilds on every change.
+## License
+
+[MIT](LICENSE)
