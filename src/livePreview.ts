@@ -13,7 +13,9 @@ export function livePreviewEmbeds(plugin: EmbedGoogleDocsPlugin): StateField<Dec
 		create: (state) => buildDecorations(state, plugin),
 		update(decorations, tr) {
 			const modeChanged = tr.startState.field(editorLivePreviewField) !== tr.state.field(editorLivePreviewField);
-			return tr.docChanged || tr.selection || modeChanged ? buildDecorations(tr.state, plugin) : decorations;
+			// Reconfiguring, as workspace.updateOptions() does, picks up changed settings.
+			const rebuild = tr.docChanged || tr.selection || modeChanged || tr.reconfigured;
+			return rebuild ? buildDecorations(tr.state, plugin) : decorations;
 		},
 		provide: (field) => EditorView.decorations.from(field),
 	});

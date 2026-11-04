@@ -4,6 +4,7 @@ import {
 	Editor,
 	Keymap,
 	MarkdownPostProcessorContext,
+	MarkdownView,
 	Platform,
 	Plugin,
 	PluginSettingTab,
@@ -107,6 +108,15 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		webview.addEventListener("dom-ready", () => webview.addClass("is-ready"));
 		retryFailedLoadOnce(webview);
 		return webview;
+	}
+
+	// Draws open embeds again from the current settings. Live preview keeps the
+	// ones whose address and size stay the same; reading view renders anew.
+	redrawEmbeds(): void {
+		this.app.workspace.updateOptions();
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			if (leaf.view instanceof MarkdownView) leaf.view.previewMode.rerender(true);
+		});
 	}
 
 	reloadEmbeds(): void {
@@ -221,6 +231,11 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		await super.setControlValue(key, value);
+		if (key === "mode" || key === "defaultHeight") this.plugin.redrawEmbeds();
+	}
+
 	// Controls read and write this.plugin.settings[key] and save it themselves.
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
@@ -242,7 +257,7 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 			},
 			{
 				name: "Embed mode",
-				desc: "How documents open, unless the link names a mode, as in ![[link|preview]]. Applies to embeds rendered after the change.",
+				desc: "How documents open, unless the link names a mode, as in ![[link|preview]].",
 				control: {
 					type: "dropdown",
 					key: "mode",
