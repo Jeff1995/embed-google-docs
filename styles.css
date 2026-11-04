@@ -106,17 +106,24 @@
 	pointer-events: none;
 }
 
-.gdocs-account-modal {
+.gdocs-modal {
 	width: min(560px, 90vw);
 	height: min(720px, 85vh);
 }
 
-.gdocs-account-modal .modal-content {
+.gdocs-modal .modal-content {
 	display: flex;
 	flex: 1;
 	min-height: 0;
 }
 
-.gdocs-account-view {
+.gdocs-modal-view {
 	flex: 1;
+}
+
+.workspace-leaf-content[data-type="embed-google-docs"] .view-content {
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
 }

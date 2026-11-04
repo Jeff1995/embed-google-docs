@@ -10,7 +10,10 @@ Paste a sharing link as an embed:
 The document opens in place, fully interactive (scroll, read, edit, comment),
 using the Google account you sign in with. Desktop only.
 
-## Size and resizing
+A Google Docs, Sheets or Slides link pasted on an empty line becomes an embed by
+itself. Pasted into text, or over selected text, it stays a link.
+
+## Size, mode and resizing
 
 Drag the bar under an embed to change its height, or the corner to change
 width and height. The new size is written into the link:
@@ -24,6 +27,20 @@ width and height. The new size is written into the link:
 A single number is the **height** (unlike images, where it is the width), since
 documents fill the note's width. Dragging the corner back to full width drops
 the width again.
+
+The link can also pick how that one document opens, overriding the **Embed
+mode** setting: `edit` (the full editor), `minimal` (the editor without menus
+and toolbar) or `preview` (read-only). Size and mode go together in any order,
+as in `![[link|600 preview]]`, and resizing keeps the mode.
+
+## More room, new files
+
+- The expand button in an embed's header opens the document in a tab of its
+  own; Ctrl/Cmd+Alt-click opens it in a split, Ctrl/Cmd+Alt+Shift-click in a
+  new window.
+- **New document**, **New spreadsheet** and **New presentation** in the
+  command palette create the file in your Google Drive and embed it at the
+  cursor.
 
 ## Signing in
 
@@ -42,8 +59,9 @@ user agent in the settings, for example a current Firefox one.
 ## Settings
 
 - **Embed mode**: the full editor, the editor without menus and toolbar, or a
-  read-only preview.
+  read-only preview, for links that do not name a mode.
 - **Default height**: for links without a size.
+- **Embed pasted links**: turn pasted links into embeds, as described above.
 - **User agent**: leave empty unless sign-in fails.
 
 ## Behavior worth knowing
@@ -56,14 +74,19 @@ user agent in the settings, for example a current Firefox one.
 - Resizing in reading view rewrites the note, which re-renders and reloads the
   embed. Resizing in live preview does not reload it.
 - Links clicked inside a document open the way Obsidian opens external links.
+- Links from **File → Share → Publish to the web** embed as they are, read-only,
+  and work without signing in. The embed mode does not apply to them.
+- Links with `/u/1/` (or another number) open as that signed-in account, when
+  you are signed in to more than one.
 - Embeds inside code blocks are left as text.
 
 ## Network use and accounts
 
 - **Google account**: viewing private documents and editing need a Google
   account. Public documents open without one.
-- **Network**: embeds and the sign-in window load pages from Google
-  (`docs.google.com`, `accounts.google.com` and whatever those pages load).
+- **Network**: embeds, document tabs and the sign-in and new-file windows load
+  pages from Google (`docs.google.com`, `accounts.google.com` and whatever those
+  pages load).
   The plugin contacts no other service, collects no data and sends nothing
   anywhere itself.
 - **Session data**: the Google sign-in cookies are stored by Obsidian's

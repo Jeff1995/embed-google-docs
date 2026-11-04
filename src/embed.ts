@@ -1,5 +1,5 @@
 import { setIcon } from "obsidian";
-import { browserUrl, EmbedSize, embedUrl, GoogleDoc } from "./googleUrl";
+import { browserUrl, EmbedMode, EmbedSize, embedUrl, GoogleDoc } from "./googleUrl";
 import type EmbedGoogleDocsPlugin from "./main";
 
 export interface WebviewElement extends HTMLElement {
@@ -12,6 +12,11 @@ declare global {
 		webview: WebviewElement;
 		"gdocs-webview-host": WebviewHost;
 	}
+}
+
+export interface EmbedOptions {
+	size: EmbedSize;
+	mode: EmbedMode;
 }
 
 interface EmbedCallbacks {
@@ -31,30 +36,23 @@ const MIN_HEIGHT = 160;
 export function createEmbed(
 	plugin: EmbedGoogleDocsPlugin,
 	doc: GoogleDoc,
-	size: EmbedSize,
+	{ size, mode }: EmbedOptions,
 	callbacks: EmbedCallbacks,
 ): HTMLElement {
-	const container = createDiv({ cls: "gdocs-embed", attr: { "data-doc-id": doc.id } });
+	const url = embedUrl(doc, mode);
+	const container = createDiv({ cls: "gdocs-embed", attr: { "data-url": url } });
 	applySize(container, size);
 
 	const header = container.createDiv({ cls: "gdocs-embed-header" });
 	const title = header.createSpan({ cls: "gdocs-embed-title", text: KIND_LABELS[doc.kind] });
 	const actions = header.createDiv({ cls: "gdocs-embed-actions" });
 
-	// Created by the main window's document, the one the element is defined in.
-	const host = createEl(WEBVIEW_HOST_TAG, { cls: "gdocs-embed-body" });
-	host.createWebview = (parent) => {
-		const webview = plugin.createWebview(parent);
-		webview.addClass("gdocs-embed-view");
-		webview.addEventListener("page-title-updated", (event) => {
-			title.setText((event as Event & { title: string }).title);
-		});
-		webview.setAttribute("src", embedUrl(doc, plugin.settings.mode));
-	};
+	const host = createDocumentHost(plugin, url, (text) => title.setText(text));
 	container.appendChild(host);
 
 	if (callbacks.onEditSource) addAction(actions, "code-2", "Edit link", callbacks.onEditSource);
 	addAction(actions, "rotate-cw", "Reload", () => host.querySelector<WebviewElement>("webview")?.reload());
+	addAction(actions, "maximize-2", "Open in new tab", (event) => void plugin.openInTab(url, title.getText(), event));
 	addAction(actions, "external-link", "Open in browser", () => window.open(browserUrl(doc)));
 
 	const footer = container.createDiv({ cls: "gdocs-embed-footer" });
@@ -62,6 +60,25 @@ export function createEmbed(
 	addResizeHandle(container, footer.createDiv({ cls: "gdocs-embed-resize-corner" }), true, callbacks.onResize);
 
 	return container;
+}
+
+// The document itself, without the embed's frame; it loads once on screen.
+export function createDocumentHost(
+	plugin: EmbedGoogleDocsPlugin,
+	url: string,
+	onTitle: (title: string) => void,
+): HTMLElement {
+	// Created by the main window's document, the one the element is defined in.
+	const host = createEl(WEBVIEW_HOST_TAG, { cls: "gdocs-embed-body" });
+	host.createWebview = (parent) => {
+		const webview = plugin.createWebview(parent);
+		webview.addClass("gdocs-embed-view");
+		webview.addEventListener("page-title-updated", (event) => {
+			onTitle((event as Event & { title: string }).title);
+		});
+		webview.setAttribute("src", url);
+	};
+	return host;
 }
 
 const WEBVIEW_HOST_TAG = "gdocs-webview-host";
@@ -104,12 +121,12 @@ export function applySize(container: HTMLElement, size: EmbedSize): void {
 	});
 }
 
-function addAction(parent: HTMLElement, icon: string, label: string, onClick: () => void): void {
+function addAction(parent: HTMLElement, icon: string, label: string, onClick: (event: MouseEvent) => void): void {
 	const button = parent.createDiv({ cls: "clickable-icon gdocs-embed-action", attr: { "aria-label": label } });
 	setIcon(button, icon);
 	button.addEventListener("click", (event) => {
 		event.stopPropagation();
-		onClick();
+		onClick(event);
 	});
 }
 

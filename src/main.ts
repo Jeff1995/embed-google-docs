@@ -1,6 +1,8 @@
 import { Prec } from "@codemirror/state";
 import {
 	App,
+	Editor,
+	Keymap,
 	MarkdownPostProcessorContext,
 	Platform,
 	Plugin,
@@ -8,9 +10,21 @@ import {
 	SettingDefinitionItem,
 } from "obsidian";
 import { GoogleAccountModal, SIGN_IN_URL, SIGN_OUT_URL } from "./account";
-import { createEmbed, registerWebviewHost, WebviewElement } from "./embed";
-import { EmbedMode, EmbedSize, GoogleDoc, parseGoogleDocUrl, replaceEmbedSize } from "./googleUrl";
+import { DOC_VIEW_TYPE, GoogleDocView } from "./docView";
+import { createEmbed, EmbedOptions, registerWebviewHost, WebviewElement } from "./embed";
+import {
+	DocKind,
+	EmbedAlias,
+	EmbedMode,
+	EmbedSize,
+	embedSource,
+	GoogleDoc,
+	parseAlias,
+	parseGoogleDocUrl,
+	replaceEmbedSize,
+} from "./googleUrl";
 import { livePreviewEmbeds } from "./livePreview";
+import { NEW_FILE_NAMES, NewDocumentModal } from "./newDocument";
 
 // Obsidian rewrites Google sign-in headers on the sessions it creates for its
 // web viewer, which makes Google reject the login. A partition of our own is
@@ -20,12 +34,14 @@ const PARTITION = "persist:embed-google-docs";
 interface Settings {
 	mode: EmbedMode;
 	defaultHeight: number;
+	embedPastedLinks: boolean;
 	userAgent: string;
 }
 
 const DEFAULT_SETTINGS: Settings = {
 	mode: "edit",
 	defaultHeight: 600,
+	embedPastedLinks: true,
 	userAgent: "",
 };
 
@@ -39,6 +55,8 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		this.registerMarkdownPostProcessor((el, ctx) => this.renderReadingViewEmbeds(el, ctx));
 		// Take precedence over Obsidian's own rendering of ![[...]], which would show "not found".
 		this.registerEditorExtension(Prec.highest(livePreviewEmbeds(this)));
+		this.registerView(DOC_VIEW_TYPE, (leaf) => new GoogleDocView(leaf, this));
+		this.registerEvent(this.app.workspace.on("editor-paste", (event, editor) => this.embedPastedLink(event, editor)));
 
 		this.addCommand({
 			id: "sign-in",
@@ -50,6 +68,13 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 			name: "Sign out of Google",
 			callback: () => this.openAccountModal(SIGN_OUT_URL),
 		});
+		for (const kind of Object.keys(NEW_FILE_NAMES) as DocKind[]) {
+			this.addCommand({
+				id: `new-${kind}`,
+				name: NEW_FILE_NAMES[kind],
+				editorCallback: (editor) => this.createDocument(kind, editor),
+			});
+		}
 		this.addSettingTab(new EmbedGoogleDocsSettingTab(this.app, this));
 	}
 
@@ -57,8 +82,12 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	defaultSize(): EmbedSize {
-		return { height: this.settings.defaultHeight };
+	// What the alias of ![[link|alias]] leaves out comes from the settings.
+	embedOptions(alias: EmbedAlias): EmbedOptions {
+		return {
+			size: alias.size ?? { height: this.settings.defaultHeight },
+			mode: alias.mode ?? this.settings.mode,
+		};
 	}
 
 	// Made by `parent`, so the webview belongs to the window it goes into: Obsidian
@@ -92,14 +121,34 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		new GoogleAccountModal(this.app, this, url).open();
 	}
 
+	// A plain click opens a new tab; modifier keys pick a split or a window, as for links.
+	async openInTab(url: string, title: string, event: MouseEvent): Promise<void> {
+		const leaf = this.app.workspace.getLeaf(Keymap.isModEvent(event) || "tab");
+		await leaf.setViewState({ type: DOC_VIEW_TYPE, active: true, state: { url, title } });
+	}
+
+	private createDocument(kind: DocKind, editor: Editor): void {
+		new NewDocumentModal(this.app, this, kind, (link) => editor.replaceSelection(embedSource(link, {}))).open();
+	}
+
+	// Embeds are blocks, so only a link pasted on a line of its own becomes one;
+	// pasted into text, or over a selection, it stays a link.
+	private embedPastedLink(event: ClipboardEvent, editor: Editor): void {
+		const link = event.clipboardData!.getData("text/plain").trim();
+		const onEmptyLine = !editor.somethingSelected() && !editor.getLine(editor.getCursor().line).trim();
+		if (!this.settings.embedPastedLinks || event.defaultPrevented || !onEmptyLine || !parseGoogleDocUrl(link)) return;
+		event.preventDefault();
+		editor.replaceSelection(embedSource(link, {}));
+	}
+
 	private renderReadingViewEmbeds(el: HTMLElement, ctx: MarkdownPostProcessorContext): void {
 		for (const placeholder of Array.from(el.querySelectorAll<HTMLElement>(".internal-embed[src]"))) {
 			const doc = parseGoogleDocUrl(placeholder.getAttribute("src")!);
 			if (!doc) continue;
-			const size = placeholderSize(placeholder) ?? this.defaultSize();
+			const options = this.embedOptions(placeholderAlias(placeholder));
 			// Swapping the element out keeps Obsidian from filling it with "not found".
 			placeholder.replaceWith(
-				createEmbed(this, doc, size, { onResize: (newSize) => void this.saveSizeInFile(el, ctx, doc, newSize) }),
+				createEmbed(this, doc, options, { onResize: (size) => void this.saveSizeInFile(el, ctx, doc, size) }),
 			);
 		}
 	}
@@ -137,13 +186,17 @@ function retryFailedLoadOnce(webview: WebviewElement): void {
 	});
 }
 
-// Obsidian parses a size alias the way it does for images: "800x600" becomes
-// width and height attributes, a lone "600" becomes width. For us that is the height.
-function placeholderSize(placeholder: HTMLElement): EmbedSize | null {
+// Obsidian puts the alias in "alt", but an alias that is only a size it may turn
+// into attributes the way it does for images: "800x600" becomes width and height,
+// a lone "600" becomes width. For us that is the height.
+function placeholderAlias(placeholder: HTMLElement): EmbedAlias {
+	const alias = parseAlias(placeholder.getAttribute("alt"));
 	const width = placeholder.getAttribute("width");
 	const height = placeholder.getAttribute("height");
-	if (!width) return null;
-	return height ? { width: Number(width), height: Number(height) } : { height: Number(width) };
+	if (!alias.size && width) {
+		alias.size = height ? { width: Number(width), height: Number(height) } : { height: Number(width) };
+	}
+	return alias;
 }
 
 // What Chrome sends on this OS, for the Chromium version Obsidian runs on.
@@ -189,7 +242,7 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 			},
 			{
 				name: "Embed mode",
-				desc: "How documents open. Applies to embeds rendered after the change.",
+				desc: "How documents open, unless the link names a mode, as in ![[link|preview]]. Applies to embeds rendered after the change.",
 				control: {
 					type: "dropdown",
 					key: "mode",
@@ -200,6 +253,11 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 				name: "Default height",
 				desc: "Height in pixels for links without a size, such as ![[link]] rather than ![[link|600]].",
 				control: { type: "slider", key: "defaultHeight", min: 200, max: 1600, step: 50 },
+			},
+			{
+				name: "Embed pasted links",
+				desc: "Turn a Google Docs, Sheets or Slides link pasted on an empty line into an embed.",
+				control: { type: "toggle", key: "embedPastedLinks" },
 			},
 			{
 				name: "User agent",

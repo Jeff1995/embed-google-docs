@@ -2,8 +2,8 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { editorLivePreviewField } from "obsidian";
-import { applySize, createEmbed } from "./embed";
-import { EMBED_PATTERN, EmbedSize, embedSource, GoogleDoc, parseGoogleDocUrl, parseSize } from "./googleUrl";
+import { applySize, createEmbed, EmbedOptions } from "./embed";
+import { EMBED_PATTERN, EmbedSize, embedSource, embedUrl, GoogleDoc, parseAlias, parseGoogleDocUrl } from "./googleUrl";
 import type EmbedGoogleDocsPlugin from "./main";
 
 const EMBED_AT_START = new RegExp("^" + EMBED_PATTERN.source);
@@ -31,9 +31,9 @@ function buildDecorations(state: EditorState, plugin: EmbedGoogleDocsPlugin): De
 		// Like Obsidian's own embeds, show the source while the cursor is on it.
 		if (!doc || selectionTouches(state, from, to) || tree.resolveInner(from, 1).name.includes("code")) continue;
 
-		const size = parseSize(match[2]) ?? plugin.defaultSize();
+		const options = plugin.embedOptions(parseAlias(match[2]));
 		// Obsidian draws embeds as block widgets, which beat inline ones whatever the precedence.
-		builder.add(from, to, Decoration.replace({ widget: new GoogleDocWidget(plugin, doc, size), block: true }));
+		builder.add(from, to, Decoration.replace({ widget: new GoogleDocWidget(plugin, doc, options), block: true }));
 	}
 	return builder.finish();
 }
@@ -46,25 +46,28 @@ class GoogleDocWidget extends WidgetType {
 	constructor(
 		readonly plugin: EmbedGoogleDocsPlugin,
 		readonly doc: GoogleDoc,
-		readonly size: EmbedSize,
+		readonly options: EmbedOptions,
 	) {
 		super();
 	}
 
+	get url(): string {
+		return embedUrl(this.doc, this.options.mode);
+	}
+
 	eq(other: GoogleDocWidget): boolean {
 		return (
-			other.doc.id === this.doc.id &&
-			other.doc.hash === this.doc.hash &&
-			other.size.width === this.size.width &&
-			other.size.height === this.size.height
+			other.url === this.url &&
+			other.options.size.width === this.options.size.width &&
+			other.options.size.height === this.options.size.height
 		);
 	}
 
 	// Resizing rewrites the link; reuse the element so the webview does not reload.
 	updateDOM(dom: HTMLElement): boolean {
 		const embed = dom.firstElementChild as HTMLElement;
-		if (embed.dataset.docId !== this.doc.id) return false;
-		applySize(embed, this.size);
+		if (embed.dataset.url !== this.url) return false;
+		applySize(embed, this.options.size);
 		return true;
 	}
 
@@ -72,7 +75,7 @@ class GoogleDocWidget extends WidgetType {
 	toDOM(view: EditorView): HTMLElement {
 		const wrapper = createDiv({ cls: "gdocs-embed-block" });
 		wrapper.appendChild(
-			createEmbed(this.plugin, this.doc, this.size, {
+			createEmbed(this.plugin, this.doc, this.options, {
 				onResize: (size) => saveSize(view, wrapper, size),
 				onEditSource: () => revealSource(view, wrapper),
 			}),
@@ -81,7 +84,7 @@ class GoogleDocWidget extends WidgetType {
 	}
 
 	get estimatedHeight(): number {
-		return this.size.height;
+		return this.options.size.height;
 	}
 
 	ignoreEvent(): boolean {
@@ -92,7 +95,8 @@ class GoogleDocWidget extends WidgetType {
 function saveSize(view: EditorView, embed: HTMLElement, size: EmbedSize): void {
 	const from = view.posAtDOM(embed);
 	const match = view.state.doc.sliceString(from, view.state.doc.lineAt(from).to).match(EMBED_AT_START)!;
-	view.dispatch({ changes: { from, to: from + match[0].length, insert: embedSource(match[1], size) } });
+	const source = embedSource(match[1], { ...parseAlias(match[2]), size });
+	view.dispatch({ changes: { from, to: from + match[0].length, insert: source } });
 }
 
 function revealSource(view: EditorView, embed: HTMLElement): void {
