@@ -1,5 +1,5 @@
 import { setIcon } from "obsidian";
-import { browserUrl, EmbedMode, EmbedSize, embedUrl, GoogleDoc } from "./googleUrl";
+import { browserUrl, EmbedMode, EmbedSize, embedUrl, GoogleDoc, parseGoogleDocUrl } from "./googleUrl";
 import type EmbedGoogleDocsPlugin from "./main";
 
 export interface WebviewElement extends HTMLElement {
@@ -70,6 +70,7 @@ export function createDocumentHost(
 ): HTMLElement {
 	// Created by the main window's document, the one the element is defined in.
 	const host = createEl(WEBVIEW_HOST_TAG, { cls: "gdocs-embed-body" });
+	host.browserLink = browserUrl(parseGoogleDocUrl(url)!);
 	host.createWebview = (parent) => {
 		const webview = plugin.createWebview(parent);
 		webview.addClass("gdocs-embed-view");
@@ -83,16 +84,21 @@ export function createDocumentHost(
 
 const WEBVIEW_HOST_TAG = "gdocs-webview-host";
 
-// A <webview> only works in the window whose document created it, and Obsidian
-// crashes when one is moved to another window, which is what dragging a tab into
-// a new window does to everything in it. This element owns its webview: it drops
-// the webview the moment it is detached (custom element callbacks run before the
-// move completes) and builds a new one in whatever window it lands in.
+// Webviews only work in the main window, and moving one to another window is what
+// dragging a tab into a new window does to everything in it. This element owns its
+// webview: it drops the webview the moment it is detached (custom element callbacks
+// run before the move completes) and builds a new one when it lands in the main
+// window. In any other window it offers the browser instead.
 class WebviewHost extends HTMLElement {
 	createWebview?: (parent: HTMLElement) => void;
+	browserLink?: string;
 	private observer?: IntersectionObserver;
 
 	connectedCallback(): void {
+		if (this.win !== window) {
+			this.showBrowserLink();
+			return;
+		}
 		// Load only once on screen: each document is a whole browser page, and
 		// Obsidian keeps the hidden editor or reading view of a note alive.
 		this.observer = new IntersectionObserver((entries) => {
@@ -104,8 +110,18 @@ class WebviewHost extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
-		this.observer!.disconnect();
+		this.observer?.disconnect();
 		this.replaceChildren();
+	}
+
+	private showBrowserLink(): void {
+		const placeholder = this.createDiv({
+			cls: "gdocs-embed-placeholder",
+			text: "Google documents show only in the main window.",
+		});
+		placeholder
+			.createEl("button", { cls: "mod-cta", text: "Open in browser" })
+			.addEventListener("click", () => window.open(this.browserLink));
 	}
 }
 

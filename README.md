@@ -36,8 +36,7 @@ as in `![[link|600 preview]]`, and resizing keeps the mode.
 ## More room, new files
 
 - The expand button in an embed's header opens the document in a tab of its
-  own; Ctrl/Cmd+Alt-click opens it in a split, Ctrl/Cmd+Alt+Shift-click in a
-  new window.
+  own; Ctrl/Cmd+Alt-click opens it in a split.
 - **New document**, **New spreadsheet** and **New presentation** in the
   command palette create the file in your Google Drive and embed it at the
   cursor.
@@ -47,7 +46,9 @@ as in `![[link|600 preview]]`, and resizing keeps the mode.
 Run **Embed Google Docs: Sign in to Google** from the command palette, or use
 the **Sign in** button in the plugin settings, and log in as you would in a
 browser. All embeds share that session, and it persists across restarts. The
-**Sign in** button Google shows inside an embed works too.
+**Sign in** button Google shows inside an embed works too. The sign-in window
+opens in the main Obsidian window; the button in the settings closes them
+first.
 
 Obsidian's own web viewer cannot sign in to Google: Obsidian rewrites the
 sign-in request headers on the sessions it creates, and Google rejects them.
@@ -66,6 +67,10 @@ user agent in the settings, for example a current Firefox one.
 
 ## Behavior worth knowing
 
+- Documents show only in the main Obsidian window. In a pop-out window, embeds
+  and document tabs offer **Open in browser** instead: Electron, which Obsidian
+  runs on, crashes when a web page inside a pop-out window takes focus. The
+  sign-in and new-file windows always open in the main window.
 - Each embed is a full browser page. Embeds load only when they scroll into
   view, and Obsidian unloads them again when they scroll far away, so they
   reload when you come back.

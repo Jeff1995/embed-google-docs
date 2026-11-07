@@ -5,6 +5,7 @@ import {
 	Keymap,
 	MarkdownPostProcessorContext,
 	MarkdownView,
+	Modal,
 	Platform,
 	Plugin,
 	PluginSettingTab,
@@ -91,10 +92,9 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		};
 	}
 
-	// Made by `parent`, so the webview belongs to the window it goes into: Obsidian
-	// crashes when a webview made by one window is inserted into another (pop-out
-	// windows, the settings window). Set "src" after this; the partition has to be
-	// in place before the first navigation.
+	// For the main window only: a webview in any other window (pop-outs, the settings
+	// window) takes Obsidian down as soon as something in it gets focus, an Electron bug.
+	// Set "src" after this; the partition has to be in place before the first navigation.
 	createWebview(parent: HTMLElement): WebviewElement {
 		const webview = parent.createEl("webview", {
 			attr: {
@@ -128,7 +128,17 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 	}
 
 	openAccountModal(url: string): void {
-		new GoogleAccountModal(this.app, this, url).open();
+		this.openInMainWindow(new GoogleAccountModal(this.app, this, url));
+	}
+
+	// Modals open in the active window; one holding a webview waits for the main window.
+	private openInMainWindow(modal: Modal): void {
+		if (activeWindow === window) {
+			modal.open();
+			return;
+		}
+		window.addEventListener("focus", () => modal.open(), { once: true });
+		window.focus();
 	}
 
 	// A plain click opens a new tab; modifier keys pick a split or a window, as for links.
@@ -138,7 +148,9 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 	}
 
 	private createDocument(kind: DocKind, editor: Editor): void {
-		new NewDocumentModal(this.app, this, kind, (link) => editor.replaceSelection(embedSource(link, {}))).open();
+		this.openInMainWindow(
+			new NewDocumentModal(this.app, this, kind, (link) => editor.replaceSelection(embedSource(link, {}))),
+		);
 	}
 
 	// Embeds are blocks, so only a link pasted on a line of its own becomes one;
@@ -231,6 +243,18 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
+	// Settings that open in a window of their own would cover the account window, which
+	// opens in the main window. Once that window is gone, the main one is active again.
+	private openAccountModal(url: string): void {
+		const settingsWindow = this.containerEl.win;
+		if (settingsWindow === window) {
+			this.plugin.openAccountModal(url);
+			return;
+		}
+		settingsWindow.addEventListener("pagehide", () => this.plugin.openAccountModal(url), { once: true });
+		settingsWindow.close();
+	}
+
 	async setControlValue(key: string, value: unknown): Promise<void> {
 		await super.setControlValue(key, value);
 		if (key === "mode" || key === "defaultHeight") this.plugin.redrawEmbeds();
@@ -248,10 +272,10 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 							button
 								.setButtonText("Sign in")
 								.setCta()
-								.onClick(() => this.plugin.openAccountModal(SIGN_IN_URL)),
+								.onClick(() => this.openAccountModal(SIGN_IN_URL)),
 						)
 						.addButton((button) =>
-							button.setButtonText("Sign out").onClick(() => this.plugin.openAccountModal(SIGN_OUT_URL)),
+							button.setButtonText("Sign out").onClick(() => this.openAccountModal(SIGN_OUT_URL)),
 						);
 				},
 			},
