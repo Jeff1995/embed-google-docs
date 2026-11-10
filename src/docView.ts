@@ -23,6 +23,9 @@ export class GoogleDocView extends ItemView {
 			window.open(browserUrl(parseGoogleDocUrl(this.state.url)!)),
 		);
 		this.addAction("rotate-cw", "Reload", () => this.contentEl.querySelector<WebviewElement>("webview")?.reload());
+		this.addAction("file-down", "Save snapshot to vault", () =>
+			this.plugin.saveSnapshot(this.contentEl, parseGoogleDocUrl(this.state.url)!),
+		);
 	}
 
 	getViewType(): string {

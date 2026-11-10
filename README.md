@@ -46,6 +46,16 @@ as in `![[link|600 preview]]`, and resizing keeps the mode.
   documents, spreadsheets or presentations, with Google's search; the one you
   open is embedded at the cursor.
 
+## Snapshots
+
+The save button in an embed's header, or in a document tab, saves a copy of
+the document into the vault, so its content turns up in search and can be read
+offline or on a phone: Docs as Markdown, Sheets as a table of the tab on
+screen, Slides as a PDF embedded in a note. The note goes where Obsidian puts
+new notes and holds the document's link in its `snapshot-of` property; saving
+the same document again updates that note. A snapshot is a copy, so editing it
+does not change the document.
+
 ## Signing in
 
 Run **Embed Google Docs: Sign in to Google** from the command palette, or use

@@ -6,6 +6,7 @@ import {
 	MarkdownPostProcessorContext,
 	MarkdownView,
 	Modal,
+	Notice,
 	Platform,
 	Plugin,
 	PluginSettingTab,
@@ -27,6 +28,7 @@ import {
 	replaceEmbedSize,
 } from "./googleUrl";
 import { livePreviewEmbeds } from "./livePreview";
+import { writeSnapshot } from "./snapshot";
 
 // Obsidian rewrites Google sign-in headers on the sessions it creates for its
 // web viewer, which makes Google reject the login. A partition of our own is
@@ -171,6 +173,16 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		}
 		window.addEventListener("focus", () => modal.open(), { once: true });
 		window.focus();
+	}
+
+	// Exports from the document's page inside the container, then opens the snapshot.
+	// In a pop-out window there is no page, and so nothing to do.
+	saveSnapshot(container: HTMLElement, doc: GoogleDoc): void {
+		const webview = container.querySelector<WebviewElement>("webview");
+		if (!webview) return;
+		writeSnapshot(this.app, webview, doc)
+			.then((file) => this.app.workspace.getLeaf("tab").openFile(file))
+			.catch((error: Error) => new Notice(`Could not save a snapshot. ${error.message}`));
 	}
 
 	// A plain click opens a new tab; modifier keys pick a split or a window, as for links.

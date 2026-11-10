@@ -61,6 +61,15 @@ export function createUrl(kind: DocKind): string {
 	return `https://docs.google.com/${kind}/create`;
 }
 
+// Docs export as Markdown, Sheets as CSV of one tab (the link's "#gid=", or else
+// the first), Slides as PDF.
+export function exportUrl(doc: GoogleDoc): string {
+	const format = { document: "md", spreadsheets: "csv", presentation: "pdf" }[doc.kind];
+	const gid = doc.hash.match(/gid=(\d+)/)?.[1];
+	const tab = gid ? `&gid=${gid}` : "";
+	return `https://docs.google.com/${doc.kind}/${doc.account}d/${doc.id}/export?format=${format}${tab}`;
+}
+
 // The first signed-in account's recent files of this kind.
 export function homeUrl(kind: DocKind): string {
 	return `https://docs.google.com/${kind}/u/0/`;

@@ -4,8 +4,11 @@ import type EmbedGoogleDocsPlugin from "./main";
 
 export interface WebviewElement extends HTMLElement {
 	reload(): void;
+	getURL(): string;
+	getTitle(): string;
 	insertCSS(css: string): Promise<string>;
 	removeInsertedCSS(key: string): Promise<void>;
+	executeJavaScript(code: string): Promise<unknown>;
 }
 
 // Lets Obsidian's createEl return these elements with their own types.
@@ -54,6 +57,8 @@ export function createEmbed(
 
 	if (callbacks.onEditSource) addAction(actions, "code-2", "Edit link", callbacks.onEditSource);
 	addAction(actions, "rotate-cw", "Reload", () => host.querySelector<WebviewElement>("webview")?.reload());
+	// "Publish to the web" pages cannot be exported.
+	if (!doc.publishedUrl) addAction(actions, "file-down", "Save snapshot to vault", () => plugin.saveSnapshot(host, doc));
 	addAction(actions, "maximize-2", "Open in new tab", (event) => void plugin.openInTab(url, title.getText(), event));
 	addAction(actions, "external-link", "Open in browser", () => window.open(browserUrl(doc)));
 
