@@ -99,3 +99,9 @@ export function replaceEmbedSize(text: string, docId: string, size: EmbedSize): 
 		parseGoogleDocUrl(link)?.id === docId ? embedSource(link, { ...parseAlias(alias), size }) : embed,
 	);
 }
+
+export function replaceEmbedWith(text: string, docId: string, replacement: string): string {
+	return text.replace(EMBED_PATTERN, (embed, link: string) =>
+		parseGoogleDocUrl(link)?.id === docId ? replacement : embed,
+	);
+}

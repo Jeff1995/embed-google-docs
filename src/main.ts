@@ -15,20 +15,20 @@ import {
 import { GoogleAccountModal, SIGN_IN_URL, SIGN_OUT_URL } from "./account";
 import { DOC_VIEW_TYPE, GoogleDocView } from "./docView";
 import { DriveModal, NEW_FILE_NAMES, NewDocumentModal } from "./documentModals";
-import { createEmbed, EmbedOptions, registerWebviewHost, WebviewElement } from "./embed";
+import { createEmbed, EmbedNote, EmbedOptions, registerWebviewHost, WebviewElement } from "./embed";
 import {
 	DocKind,
 	EmbedAlias,
 	EmbedMode,
-	EmbedSize,
 	embedSource,
 	GoogleDoc,
 	parseAlias,
 	parseGoogleDocUrl,
 	replaceEmbedSize,
+	replaceEmbedWith,
 } from "./googleUrl";
 import { livePreviewEmbeds } from "./livePreview";
-import { writeSnapshot } from "./snapshot";
+import { snapshotMarkdown } from "./snapshot";
 
 // Obsidian rewrites Google sign-in headers on the sessions it creates for its
 // web viewer, which makes Google reject the login. A partition of our own is
@@ -175,13 +175,13 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		window.focus();
 	}
 
-	// Exports from the document's page inside the container, then opens the snapshot.
-	// In a pop-out window there is no page, and so nothing to do.
-	saveSnapshot(container: HTMLElement, doc: GoogleDoc): void {
+	// Exports from the document's page inside the container and puts the result in
+	// place of the embed. In a pop-out window there is no page, and so nothing to do.
+	replaceWithSnapshot(container: HTMLElement, doc: GoogleDoc, note: EmbedNote): void {
 		const webview = container.querySelector<WebviewElement>("webview");
 		if (!webview) return;
-		writeSnapshot(this.app, webview, doc)
-			.then((file) => this.app.workspace.getLeaf("tab").openFile(file))
+		snapshotMarkdown(this.app, webview, doc, note.sourcePath)
+			.then((markdown) => note.onReplace(markdown))
 			.catch((error: Error) => new Notice(`Could not save a snapshot. ${error.message}`));
 	}
 
@@ -218,16 +218,19 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 			const options = this.embedOptions(placeholderAlias(placeholder));
 			// Swapping the element out keeps Obsidian from filling it with "not found".
 			placeholder.replaceWith(
-				createEmbed(this, doc, options, { onResize: (size) => void this.saveSizeInFile(el, ctx, doc, size) }),
+				createEmbed(this, doc, options, {
+					sourcePath: ctx.sourcePath,
+					onResize: (size) => void this.editEmbedLines(el, ctx, (line) => replaceEmbedSize(line, doc.id, size)),
+					onReplace: (markdown) => void this.editEmbedLines(el, ctx, (line) => replaceEmbedWith(line, doc.id, markdown)),
+				}),
 			);
 		}
 	}
 
-	private async saveSizeInFile(
+	private async editEmbedLines(
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext,
-		doc: GoogleDoc,
-		size: EmbedSize,
+		edit: (line: string) => string,
 	): Promise<void> {
 		const section = ctx.getSectionInfo(el);
 		const file = this.app.vault.getFileByPath(ctx.sourcePath);
@@ -236,7 +239,7 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		await this.app.vault.process(file, (data) => {
 			const lines = data.split("\n");
 			for (let i = section.lineStart; i <= section.lineEnd; i++) {
-				lines[i] = replaceEmbedSize(lines[i], doc.id, size);
+				lines[i] = edit(lines[i]);
 			}
 			return lines.join("\n");
 		});

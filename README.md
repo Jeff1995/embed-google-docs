@@ -26,8 +26,8 @@ on. Desktop only.
   Obsidian. [Adding documents](#adding-documents)
 - **Open a document in its own tab** for more room.
   [Embed buttons](#embed-buttons)
-- **Save a snapshot** into your vault, to search it or read it offline.
-  [Snapshots](#snapshots)
+- **Turn an embed into a snapshot**: a copy of the document right in your
+  note, to search it or read it offline. [Snapshots](#snapshots)
 - **Dark mode**: documents turn dark along with your theme.
   [Settings](#settings)
 
@@ -66,29 +66,29 @@ Mix them in any order: `![[link|600 preview]]`. Without a mode, the
 
 ## Embed buttons
 
-| Button              | Does                                                           |
-| ------------------- | -------------------------------------------------------------- |
-| **Edit link** `</>` | shows the link text so you can edit it (live preview)          |
-| **Reload**          | reloads the document                                           |
-| **Save snapshot**   | copies the document into your vault ([more](#snapshots))       |
-| **Open in new tab** | gives the document a whole tab; Ctrl/Cmd+Alt-click for a split |
-| **Open in browser** | opens it in your web browser                                   |
+| Button                    | Does                                                           |
+| ------------------------- | -------------------------------------------------------------- |
+| **Edit link** `</>`       | shows the link text so you can edit it (live preview)          |
+| **Reload**                | reloads the document                                           |
+| **Replace with snapshot** | swaps the embed for a copy of the document ([more](#snapshots)) |
+| **Open in new tab**       | gives the document a whole tab; Ctrl/Cmd+Alt-click for a split |
+| **Open in browser**       | opens it in your web browser                                   |
 
 ## Snapshots
 
-**Save snapshot** copies a document into your vault, so you can find it in
-search, read it offline, or open it on your phone.
+**Replace with snapshot** swaps an embed for a copy of the document, right in
+your note. The copy turns up in search and works offline and on your phone.
 
-| Google file | Saved as                                   |
-| ----------- | ------------------------------------------ |
-| Docs        | a Markdown note                            |
-| Sheets      | a note with a table of the tab you're on   |
-| Slides      | a PDF, embedded in a note                  |
+| Google file | Becomes                                 |
+| ----------- | --------------------------------------- |
+| Docs        | the document's text, with its pictures  |
+| Sheets      | a table of the tab you're on            |
+| Slides      | an embedded PDF                         |
 
-- It goes wherever your new notes go.
-- Saving again updates the same note. The note keeps the document's link in a
-  `snapshot-of` property.
+- Pictures and PDFs go where your vault keeps attachments
+  (**Settings → Files and links**).
 - It's a copy: editing it doesn't change the Google document.
+- Changed your mind? In the editor, Undo brings the embed back.
 
 ## Signing in
 

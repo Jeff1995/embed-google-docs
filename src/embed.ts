@@ -24,8 +24,12 @@ export interface EmbedOptions {
 	mode: EmbedMode;
 }
 
-interface EmbedCallbacks {
+// The note the embed is in, and how to change the embed's link there.
+export interface EmbedNote {
+	sourcePath: string;
 	onResize: (size: EmbedSize) => void;
+	// Puts Markdown in place of the link.
+	onReplace: (markdown: string) => void;
 	onEditSource?: () => void;
 }
 
@@ -42,7 +46,7 @@ export function createEmbed(
 	plugin: EmbedGoogleDocsPlugin,
 	doc: GoogleDoc,
 	{ size, mode }: EmbedOptions,
-	callbacks: EmbedCallbacks,
+	note: EmbedNote,
 ): HTMLElement {
 	const url = embedUrl(doc, mode);
 	const container = createDiv({ cls: "gdocs-embed", attr: { "data-url": url } });
@@ -55,16 +59,18 @@ export function createEmbed(
 	const host = createDocumentHost(plugin, url, (text) => title.setText(text));
 	container.appendChild(host);
 
-	if (callbacks.onEditSource) addAction(actions, "code-2", "Edit link", callbacks.onEditSource);
+	if (note.onEditSource) addAction(actions, "code-2", "Edit link", note.onEditSource);
 	addAction(actions, "rotate-cw", "Reload", () => host.querySelector<WebviewElement>("webview")?.reload());
 	// "Publish to the web" pages cannot be exported.
-	if (!doc.publishedUrl) addAction(actions, "file-down", "Save snapshot to vault", () => plugin.saveSnapshot(host, doc));
+	if (!doc.publishedUrl) {
+		addAction(actions, "file-down", "Replace with snapshot", () => plugin.replaceWithSnapshot(host, doc, note));
+	}
 	addAction(actions, "maximize-2", "Open in new tab", (event) => void plugin.openInTab(url, title.getText(), event));
 	addAction(actions, "external-link", "Open in browser", () => window.open(browserUrl(doc)));
 
 	const footer = container.createDiv({ cls: "gdocs-embed-footer" });
-	addResizeHandle(container, footer.createDiv({ cls: "gdocs-embed-resize-height" }), false, callbacks.onResize);
-	addResizeHandle(container, footer.createDiv({ cls: "gdocs-embed-resize-corner" }), true, callbacks.onResize);
+	addResizeHandle(container, footer.createDiv({ cls: "gdocs-embed-resize-height" }), false, note.onResize);
+	addResizeHandle(container, footer.createDiv({ cls: "gdocs-embed-resize-corner" }), true, note.onResize);
 
 	return container;
 }

@@ -1,7 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { editorLivePreviewField } from "obsidian";
+import { editorInfoField, editorLivePreviewField } from "obsidian";
 import { applySize, createEmbed, EmbedOptions } from "./embed";
 import { EMBED_PATTERN, EmbedSize, embedSource, embedUrl, GoogleDoc, parseAlias, parseGoogleDocUrl } from "./googleUrl";
 import type EmbedGoogleDocsPlugin from "./main";
@@ -78,7 +78,9 @@ class GoogleDocWidget extends WidgetType {
 		const wrapper = createDiv({ cls: "gdocs-embed-block" });
 		wrapper.appendChild(
 			createEmbed(this.plugin, this.doc, this.options, {
+				sourcePath: view.state.field(editorInfoField).file?.path ?? "",
 				onResize: (size) => saveSize(view, wrapper, size),
+				onReplace: (markdown) => replaceSource(view, wrapper, markdown),
 				onEditSource: () => revealSource(view, wrapper),
 			}),
 		);
@@ -94,11 +96,22 @@ class GoogleDocWidget extends WidgetType {
 	}
 }
 
-function saveSize(view: EditorView, embed: HTMLElement, size: EmbedSize): void {
+// The embed's ![[link|alias]] in the note.
+function sourceAt(view: EditorView, embed: HTMLElement): { from: number; match: RegExpMatchArray } {
 	const from = view.posAtDOM(embed);
 	const match = view.state.doc.sliceString(from, view.state.doc.lineAt(from).to).match(EMBED_AT_START)!;
+	return { from, match };
+}
+
+function saveSize(view: EditorView, embed: HTMLElement, size: EmbedSize): void {
+	const { from, match } = sourceAt(view, embed);
 	const source = embedSource(match[1], { ...parseAlias(match[2]), size });
 	view.dispatch({ changes: { from, to: from + match[0].length, insert: source } });
+}
+
+function replaceSource(view: EditorView, embed: HTMLElement, markdown: string): void {
+	const { from, match } = sourceAt(view, embed);
+	view.dispatch({ changes: { from, to: from + match[0].length, insert: markdown } });
 }
 
 function revealSource(view: EditorView, embed: HTMLElement): void {
