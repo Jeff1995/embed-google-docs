@@ -10,6 +10,8 @@ Paste a sharing link as an embed:
 The document opens in place, fully interactive (scroll, read, edit, comment),
 using the Google account you sign in with. Desktop only.
 
+![A Google Sheet embedded in an Obsidian note](https://raw.githubusercontent.com/Jeff1995/embed-google-docs/main/docs/screenshot.png)
+
 A Google Docs, Sheets or Slides link pasted on an empty line becomes an embed by
 itself. Pasted into text, or over selected text, it stays a link.
 
