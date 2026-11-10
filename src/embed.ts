@@ -4,6 +4,8 @@ import type EmbedGoogleDocsPlugin from "./main";
 
 export interface WebviewElement extends HTMLElement {
 	reload(): void;
+	insertCSS(css: string): Promise<string>;
+	removeInsertedCSS(key: string): Promise<void>;
 }
 
 // Lets Obsidian's createEl return these elements with their own types.
@@ -76,6 +78,11 @@ export function createDocumentHost(
 		webview.addClass("gdocs-embed-view");
 		webview.addEventListener("page-title-updated", (event) => {
 			onTitle((event as Event & { title: string }).title);
+		});
+		webview.addEventListener("dom-ready", () => {
+			// A new page has none of the CSS inserted into the last one.
+			delete webview.dataset.darkCss;
+			void plugin.applyDarkMode(webview);
 		});
 		webview.setAttribute("src", url);
 	};

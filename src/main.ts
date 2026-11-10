@@ -33,10 +33,16 @@ import { livePreviewEmbeds } from "./livePreview";
 // left alone. It must not start with "vault-": Obsidian deletes those on launch.
 const PARTITION = "persist:embed-google-docs";
 
+// Google's editors have no dark theme; inverting the page comes close. Pictures
+// in the page are turned back, but the documents themselves are drawn on a
+// canvas, so pictures inside them stay inverted.
+const DARK_CSS = "html { filter: invert(0.88) hue-rotate(180deg); } img, video { filter: invert(1) hue-rotate(180deg); }";
+
 interface Settings {
 	mode: EmbedMode;
 	defaultHeight: number;
 	embedPastedLinks: boolean;
+	darkDocuments: boolean;
 	userAgent: string;
 }
 
@@ -44,6 +50,7 @@ const DEFAULT_SETTINGS: Settings = {
 	mode: "edit",
 	defaultHeight: 600,
 	embedPastedLinks: true,
+	darkDocuments: true,
 	userAgent: "",
 };
 
@@ -59,6 +66,7 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		this.registerEditorExtension(Prec.highest(livePreviewEmbeds(this)));
 		this.registerView(DOC_VIEW_TYPE, (leaf) => new GoogleDocView(leaf, this));
 		this.registerEvent(this.app.workspace.on("editor-paste", (event, editor) => this.embedPastedLink(event, editor)));
+		this.registerEvent(this.app.workspace.on("css-change", () => this.updateDarkMode()));
 
 		this.addCommand({
 			id: "sign-in",
@@ -129,6 +137,25 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 			leaf.view.containerEl
 				.querySelectorAll<WebviewElement>("webview.gdocs-embed-view.is-ready")
 				.forEach((webview) => webview.reload());
+		});
+	}
+
+	// Follows Obsidian's theme. The key of the inserted CSS is kept on the webview to take it out again.
+	async applyDarkMode(webview: WebviewElement): Promise<void> {
+		const dark = this.settings.darkDocuments && document.body.hasClass("theme-dark");
+		const key = webview.dataset.darkCss;
+		if (dark && !key) webview.dataset.darkCss = await webview.insertCSS(DARK_CSS);
+		if (!dark && key) {
+			delete webview.dataset.darkCss;
+			await webview.removeInsertedCSS(key);
+		}
+	}
+
+	updateDarkMode(): void {
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			leaf.view.containerEl
+				.querySelectorAll<WebviewElement>("webview.gdocs-embed-view.is-ready")
+				.forEach((webview) => void this.applyDarkMode(webview));
 		});
 	}
 
@@ -267,6 +294,7 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 	async setControlValue(key: string, value: unknown): Promise<void> {
 		await super.setControlValue(key, value);
 		if (key === "mode" || key === "defaultHeight") this.plugin.redrawEmbeds();
+		if (key === "darkDocuments") this.plugin.updateDarkMode();
 	}
 
 	// Controls read and write this.plugin.settings[key] and save it themselves.
@@ -306,6 +334,11 @@ class EmbedGoogleDocsSettingTab extends PluginSettingTab {
 				name: "Embed pasted links",
 				desc: "Turn a Google Docs, Sheets or Slides link pasted on an empty line into an embed.",
 				control: { type: "toggle", key: "embedPastedLinks" },
+			},
+			{
+				name: "Dark documents",
+				desc: "In a dark theme, show documents dark too by inverting their colors, pictures in them included.",
+				control: { type: "toggle", key: "darkDocuments" },
 			},
 			{
 				name: "User agent",

@@ -68,6 +68,9 @@ user agent in the settings, for example a current Firefox one.
   read-only preview, for links that do not name a mode.
 - **Default height**: for links without a size.
 - **Embed pasted links**: turn pasted links into embeds, as described above.
+- **Dark documents**: with a dark Obsidian theme, invert the colors of
+  documents, which have no dark theme of their own. Pictures in documents are
+  inverted too.
 - **User agent**: leave empty unless sign-in fails.
 
 ## Behavior worth knowing
