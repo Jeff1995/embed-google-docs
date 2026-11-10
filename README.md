@@ -1,130 +1,150 @@
 # Embed Google Docs
 
-An Obsidian plugin that shows live Google Docs, Sheets and Slides inside a note.
-Paste a sharing link as an embed:
-
-```markdown
-![[https://docs.google.com/document/d/1AbC.../edit?usp=sharing]]
-```
-
-The document opens in place, fully interactive (scroll, read, edit, comment),
-using the Google account you sign in with. Desktop only.
+Live Google Docs, Sheets and Slides inside your Obsidian notes. Sign in once,
+and every document opens right in the note, ready to read, edit and comment
+on. Desktop only.
 
 ![A Google Sheet embedded in an Obsidian note](https://raw.githubusercontent.com/Jeff1995/embed-google-docs/main/docs/screenshot.png)
 
-A Google Docs, Sheets or Slides link pasted on an empty line becomes an embed by
-itself. Pasted into text, or over selected text, it stays a link.
+## Quick start
 
-## Size, mode and resizing
+1. Run **Sign in to Google** from the command palette.
+2. Paste a Google Docs, Sheets or Slides link on an empty line. It turns into
+   an embed:
+   ```markdown
+   ![[https://docs.google.com/document/d/…/edit]]
+   ```
+3. That's it: the document loads in your note.
 
-Drag the bar under an embed to change its height, or the corner to change
-width and height. The new size is written into the link:
+## What you can do
 
-| Link                  | Size                          |
-| --------------------- | ----------------------------- |
-| `![[link]]`           | full width, default height    |
-| `![[link\|600]]`      | full width, 600 px tall       |
-| `![[link\|800x600]]`  | 800 px wide, 600 px tall      |
+- **Resize** an embed by dragging its bottom edge or corner.
+  [Size and mode](#size-and-mode)
+- **Pick a view** per document: full editor, editor without menus, or
+  read-only. [Size and mode](#size-and-mode)
+- **Insert from Google Drive** or **create a new file** without leaving
+  Obsidian. [Adding documents](#adding-documents)
+- **Open a document in its own tab** for more room.
+  [Embed buttons](#embed-buttons)
+- **Save a snapshot** into your vault, to search it or read it offline.
+  [Snapshots](#snapshots)
+- **Dark mode**: documents turn dark along with your theme.
+  [Settings](#settings)
 
-A single number is the **height** (unlike images, where it is the width), since
-documents fill the note's width. Dragging the corner back to full width drops
-the width again.
+## Size and mode
 
-The link can also pick how that one document opens, overriding the **Embed
-mode** setting: `edit` (the full editor), `minimal` (the editor without menus
-and toolbar) or `preview` (read-only). Size and mode go together in any order,
-as in `![[link|600 preview]]`, and resizing keeps the mode.
+Drag the bar under an embed to change its height, or the corner to change the
+width too. The size is saved in the link:
 
-## More room, new files
+| You write             | You get                     |
+| --------------------- | --------------------------- |
+| `![[link]]`           | full width, default height  |
+| `![[link\|600]]`      | 600 px tall                 |
+| `![[link\|800x600]]`  | 800 px wide, 600 px tall    |
 
-- The expand button in an embed's header opens the document in a tab of its
-  own; Ctrl/Cmd+Alt-click opens it in a split.
-- **New document**, **New spreadsheet** and **New presentation** in the
-  command palette create the file in your Google Drive and embed it at the
-  cursor.
-- **Insert from Google Drive** in the command palette lists your recent
-  documents, spreadsheets or presentations, with Google's search; the one you
-  open is embedded at the cursor.
+A single number is the **height**, not the width as for images.
+
+Add a mode to choose how that one document opens:
+
+| Mode      | Shows                       |
+| --------- | --------------------------- |
+| `edit`    | the full editor             |
+| `minimal` | the editor without menus    |
+| `preview` | a read-only page            |
+
+Mix them in any order: `![[link|600 preview]]`. Without a mode, the
+**Embed mode** setting decides.
+
+## Adding documents
+
+- **Paste** a Google link on an empty line and it becomes an embed. Pasted
+  into text, it stays a plain link.
+- **Insert from Google Drive** (command palette): browse or search your recent
+  Docs, Sheets and Slides. Click one to embed it at the cursor.
+- **New document**, **New spreadsheet**, **New presentation** (command
+  palette): create the file in your Google Drive and embed it.
+
+## Embed buttons
+
+| Button              | Does                                                           |
+| ------------------- | -------------------------------------------------------------- |
+| **Edit link** `</>` | shows the link text so you can edit it (live preview)          |
+| **Reload**          | reloads the document                                           |
+| **Save snapshot**   | copies the document into your vault ([more](#snapshots))       |
+| **Open in new tab** | gives the document a whole tab; Ctrl/Cmd+Alt-click for a split |
+| **Open in browser** | opens it in your web browser                                   |
 
 ## Snapshots
 
-The save button in an embed's header, or in a document tab, saves a copy of
-the document into the vault, so its content turns up in search and can be read
-offline or on a phone: Docs as Markdown, Sheets as a table of the tab on
-screen, Slides as a PDF embedded in a note. The note goes where Obsidian puts
-new notes and holds the document's link in its `snapshot-of` property; saving
-the same document again updates that note. A snapshot is a copy, so editing it
-does not change the document.
+**Save snapshot** copies a document into your vault, so you can find it in
+search, read it offline, or open it on your phone.
+
+| Google file | Saved as                                   |
+| ----------- | ------------------------------------------ |
+| Docs        | a Markdown note                            |
+| Sheets      | a note with a table of the tab you're on   |
+| Slides      | a PDF, embedded in a note                  |
+
+- It goes wherever your new notes go.
+- Saving again updates the same note. The note keeps the document's link in a
+  `snapshot-of` property.
+- It's a copy: editing it doesn't change the Google document.
 
 ## Signing in
 
-Run **Embed Google Docs: Sign in to Google** from the command palette, or use
-the **Sign in** button in the plugin settings, and log in as you would in a
-browser. All embeds share that session, and it persists across restarts. The
-**Sign in** button Google shows inside an embed works too. The sign-in window
-opens in the main Obsidian window; the button in the settings closes them
-first.
+- Run **Sign in to Google** from the command palette, or click **Sign in** in
+  the plugin settings.
+- You stay signed in across restarts, and every embed uses that account.
+- Public documents work without signing in.
+- **Sign out of Google** signs you out.
 
-Obsidian's own web viewer cannot sign in to Google: Obsidian rewrites the
-sign-in request headers on the sessions it creates, and Google rejects them.
-This plugin keeps its embeds on a separate session (`persist:embed-google-docs`)
-that Obsidian leaves alone, and sends Chrome's user agent. If Google ever
-refuses the sign-in ("This browser or app may not be secure"), set a different
-user agent in the settings, for example a current Firefox one.
+**Google says "This browser or app may not be secure"?** Set a different
+**User agent** in the settings, for example a current Firefox one.
+
+Why not Obsidian's own web viewer? It can't sign in to Google: Obsidian
+changes the sign-in requests, and Google refuses them. This plugin uses a
+browser session of its own that Obsidian leaves alone.
 
 ## Settings
 
-- **Embed mode**: the full editor, the editor without menus and toolbar, or a
-  read-only preview, for links that do not name a mode.
-- **Default height**: for links without a size.
-- **Embed pasted links**: turn pasted links into embeds, as described above.
-- **Dark documents**: with a dark Obsidian theme, invert the colors of
-  documents, which have no dark theme of their own. Pictures in documents are
-  inverted too.
-- **User agent**: leave empty unless sign-in fails.
+| Setting                | What it does                                                   |
+| ---------------------- | -------------------------------------------------------------- |
+| **Embed mode**         | how documents open when the link doesn't say                   |
+| **Default height**     | height of embeds whose link has no size                        |
+| **Embed pasted links** | turn Google links pasted on an empty line into embeds          |
+| **Dark documents**     | in a dark theme, invert document colors (pictures inside too)  |
+| **User agent**         | leave empty unless sign-in fails                               |
 
-## Behavior worth knowing
+## Good to know
 
-- Documents show only in the main Obsidian window. In a pop-out window, embeds
-  and document tabs offer **Open in browser** instead: Electron, which Obsidian
-  runs on, crashes when a web page inside a pop-out window takes focus. The
-  sign-in and new-file windows always open in the main window.
-- Each embed is a full browser page. Embeds load only when they scroll into
-  view, and Obsidian unloads them again when they scroll far away, so they
-  reload when you come back.
-- In live preview, the link text shows while the cursor is on it, like
-  Obsidian's own embeds. The `</>` button in the embed's header jumps there.
-- Resizing in reading view rewrites the note, which re-renders and reloads the
-  embed. Resizing in live preview does not reload it.
-- Links clicked inside a document open the way Obsidian opens external links.
-- Links from **File → Share → Publish to the web** embed as they are, read-only,
-  and work without signing in. The embed mode does not apply to them.
-- Links with `/u/1/` (or another number) open as that signed-in account, when
-  you are signed in to more than one.
-- Embeds inside code blocks are left as text.
+- **Main window only.** In pop-out windows, embeds show an **Open in browser**
+  button instead, because an Electron bug would crash Obsidian.
+- **Embeds reload** when you scroll far away and back, since Obsidian unloads
+  them to save memory. Resizing in reading view reloads them too.
+- **Links inside a document** open like any other web link in Obsidian.
+- **"Publish to the web" links** embed read-only and need no sign-in.
+- **Several Google accounts?** A link with `/u/1/` opens as your second one.
 
-## Network use and accounts
+## Privacy and network use
 
-- **Google account**: viewing private documents and editing need a Google
-  account. Public documents open without one.
-- **Network**: embeds, document tabs and the sign-in and new-file windows load
-  pages from Google (`docs.google.com`, `accounts.google.com` and whatever those
-  pages load).
-  The plugin contacts no other service, collects no data and sends nothing
-  anywhere itself.
-- **Session data**: the Google sign-in cookies are stored by Obsidian's
-  Electron runtime in the `persist:embed-google-docs` session, outside your
-  vault. **Sign out of Google** clears the login.
+- The plugin loads pages from Google only (`docs.google.com`,
+  `accounts.google.com` and what those pages load). It collects no data and
+  sends nothing anywhere itself.
+- A Google account is needed for private documents and for editing.
+- Snapshots are downloaded from Google's own export links into your vault.
+- Your sign-in is stored by Obsidian in a session named
+  `persist:embed-google-docs`, outside your vault. **Sign out of Google**
+  clears it.
 
 ## Install
 
-In Obsidian, open Settings → Community plugins → Browse, search for
+In Obsidian: **Settings → Community plugins → Browse**, search for
 **Embed Google Docs**, then install and enable it.
 
-To install by hand, download `main.js`, `manifest.json` and `styles.css` from
-the [latest release](https://github.com/Jeff1995/embed-google-docs/releases/latest)
-into `<vault>/.obsidian/plugins/embed-google-docs/`, then enable
-**Embed Google Docs** under Settings → Community plugins.
+By hand: download `main.js`, `manifest.json` and `styles.css` from the
+[latest release](https://github.com/Jeff1995/embed-google-docs/releases/latest)
+into `<vault>/.obsidian/plugins/embed-google-docs/`, then enable the plugin
+under **Settings → Community plugins**.
 
 ## Development
 
