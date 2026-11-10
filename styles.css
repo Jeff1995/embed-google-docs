@@ -125,8 +125,15 @@
 
 .gdocs-modal .modal-content {
 	display: flex;
+	flex-direction: column;
 	flex: 1;
 	min-height: 0;
+}
+
+.gdocs-modal-kinds {
+	display: flex;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
 }
 
 .gdocs-modal-view {

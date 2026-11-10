@@ -24,7 +24,7 @@ interface EmbedCallbacks {
 	onEditSource?: () => void;
 }
 
-const KIND_LABELS = {
+export const KIND_LABELS = {
 	document: "Google Docs",
 	spreadsheets: "Google Sheets",
 	presentation: "Google Slides",

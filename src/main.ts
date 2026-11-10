@@ -13,6 +13,7 @@ import {
 } from "obsidian";
 import { GoogleAccountModal, SIGN_IN_URL, SIGN_OUT_URL } from "./account";
 import { DOC_VIEW_TYPE, GoogleDocView } from "./docView";
+import { DriveModal, NEW_FILE_NAMES, NewDocumentModal } from "./documentModals";
 import { createEmbed, EmbedOptions, registerWebviewHost, WebviewElement } from "./embed";
 import {
 	DocKind,
@@ -26,7 +27,6 @@ import {
 	replaceEmbedSize,
 } from "./googleUrl";
 import { livePreviewEmbeds } from "./livePreview";
-import { NEW_FILE_NAMES, NewDocumentModal } from "./newDocument";
 
 // Obsidian rewrites Google sign-in headers on the sessions it creates for its
 // web viewer, which makes Google reject the login. A partition of our own is
@@ -77,6 +77,11 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 				editorCallback: (editor) => this.createDocument(kind, editor),
 			});
 		}
+		this.addCommand({
+			id: "insert-from-drive",
+			name: "Insert from Google Drive",
+			editorCallback: (editor) => this.insertFromDrive(editor),
+		});
 		this.addSettingTab(new EmbedGoogleDocsSettingTab(this.app, this));
 	}
 
@@ -151,6 +156,10 @@ export default class EmbedGoogleDocsPlugin extends Plugin {
 		this.openInMainWindow(
 			new NewDocumentModal(this.app, this, kind, (link) => editor.replaceSelection(embedSource(link, {}))),
 		);
+	}
+
+	private insertFromDrive(editor: Editor): void {
+		this.openInMainWindow(new DriveModal(this.app, this, (link) => editor.replaceSelection(embedSource(link, {}))));
 	}
 
 	// Embeds are blocks, so only a link pasted on a line of its own becomes one;

@@ -42,6 +42,9 @@ as in `![[link|600 preview]]`, and resizing keeps the mode.
 - **New document**, **New spreadsheet** and **New presentation** in the
   command palette create the file in your Google Drive and embed it at the
   cursor.
+- **Insert from Google Drive** in the command palette lists your recent
+  documents, spreadsheets or presentations, with Google's search; the one you
+  open is embedded at the cursor.
 
 ## Signing in
 

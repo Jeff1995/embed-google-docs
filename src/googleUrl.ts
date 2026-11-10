@@ -61,6 +61,11 @@ export function createUrl(kind: DocKind): string {
 	return `https://docs.google.com/${kind}/create`;
 }
 
+// The first signed-in account's recent files of this kind.
+export function homeUrl(kind: DocKind): string {
+	return `https://docs.google.com/${kind}/u/0/`;
+}
+
 // The alias holds a size, a mode or both, as words in any order: "600", "800x600 preview".
 // A single number is a height, "800x600" is width x height. Other words are ignored.
 export function parseAlias(alias: string | null | undefined): EmbedAlias {
